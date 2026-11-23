@@ -1,4 +1,4 @@
-package org.example.demo;
+package com.example.demo;
 
 public class AlignLeft implements AlignStrategy {
 
