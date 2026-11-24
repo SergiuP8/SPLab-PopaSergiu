@@ -1,10 +1,13 @@
 package com.example.demo.controllers;
 
 import com.example.demo.Book;
+import com.example.demo.NewBookRequest;
 import com.example.demo.commands.*;
+import com.example.demo.observer.AllBooksSubject;
 import com.example.demo.persistence.*;
 import com.example.demo.commands.CreateBookCommand;
 import com.example.demo.commands.DeleteBookCommand;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -47,23 +50,6 @@ public class BooksController {
         return synchronousCommandExecutor.execute(command).join();
     }
 
-    @PostMapping
-    public ResponseEntity<Map<String, String>> createBook(
-            @RequestBody String title) {
-
-        CreateBookCommand command =
-                new CreateBookCommand(commandContext, title);
-
-        String requestId =
-                asynchronousCommandExecutor.executeAsync(command);
-
-        return ResponseEntity.accepted().body(
-                Map.of(
-                        "requestId", requestId,
-                        "status", "PENDING"
-                )
-        );
-    }
 
     @PutMapping("/{id}")
     public Book updateBook(
@@ -83,5 +69,16 @@ public class BooksController {
                 new DeleteBookCommand(commandContext, id);
 
         return synchronousCommandExecutor.execute(command).join();
+    }
+
+    @Autowired
+    private AllBooksSubject allBooksSubject;
+    private BooksRepository booksRepository;
+    @PostMapping
+    public String newBook(@RequestBody NewBookRequest newBookRequest) {
+        CreateBookCommand command = new CreateBookCommand(commandContext, newBookRequest.getTitle());
+        Book book = command.execute();
+        allBooksSubject.add(book);
+        return "Book saved [" + book.getId() + "] " + book.getTitle();
     }
 }
